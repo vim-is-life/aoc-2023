@@ -28,6 +28,7 @@ LOGO=arcolinux-hello
 The resources that I'm using for anyone curious are:
 - _ANSI Common Lisp_ by Paul Graham (ISBN 0-13-370875-6)
 - _A Programmer's Guide to Common Lisp_ by Deborah G. Tatar (ISBN 0-932376-87-8)
+- [Lisp Cookbook Website](https://lispcookbook.github.io/)
 
 ## Contributing
 If anyone somehow happens to come across this and feels so moved to 
