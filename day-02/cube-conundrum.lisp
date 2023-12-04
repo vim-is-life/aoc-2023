@@ -118,4 +118,36 @@ expected to be in the form
 
     sum-of-possible-game-ids))
 
-(print (solve-part-one))
+;; (solve-part-one))
+
+;;; part 2: find the sum of the powers of the sets of the least amount of cubes
+;;; necessary to make a game possible.
+;;;
+;;; in other words (in my understanding of the problem), i have to
+;;; 1. find the fewest number of cubes of each color that would make each of the
+;;;    games possible
+;;; 2. then for each set of three numbers i got from finding 1.,
+;;;    compute the power of the set, which we find by multiplying all three
+;;;    numbers together
+;;; 3. then for the final answer find the sum of all numbers we got from 2.
+;;;
+;;; my initial thoughts is that it seems doable because i have a function that
+;;; gives me the highest number of cubes pulled of all colors in a given game,
+;;; so i should be able to work with that.
+
+(defun solve-part-two ()
+  (let* ((input-file "./input-p1-p2.txt")
+         (file-lines (get-file-contents input-file))
+         (game-information (mapcar (lambda (line) (cadr (str:split ":" line)))
+                                   file-lines))
+         (min-cubes-for-each-game (mapcar (lambda (info-line)
+                                            (let* ((draw-data-alist (get-all-data-after-id info-line))
+                                                   (color-occurrence-data-plist
+                                                     (get-draw-stats-with-max-cube-count draw-data-alist)))
+                                              (remove-if 'stringp color-occurrence-data-plist)))
+                                          game-information))
+         (set-of-powers (mapcar (lambda (set) (reduce '* set))
+                                min-cubes-for-each-game)))
+    (reduce '+ set-of-powers)))
+
+;; (solve-part-two)
