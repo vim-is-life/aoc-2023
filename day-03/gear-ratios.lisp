@@ -6,113 +6,75 @@
 (ql:quickload "str")
 (ql:quickload "cl-ppcre")
 
-(defparameter *symbol-regex* (ppcre:create-scanner  "[~!@#$%^&*-+=-]"))
-(defparameter *number-regex* (ppcre:create-scanner "\\d\\d?\\d?"))
+(defparameter *symbol-regex* (ppcre:create-scanner  "[~!@#$%^&*-+=-]")
+  "The regex scanner to identify symbol characters in the input.")
+(defparameter *number-regex* (ppcre:create-scanner "\\d\\d?\\d?")
+  "The regex scanner to identify a range of 1 to 3 consecutive numbers in the
+  input.")
 
 (defun get-line-length (str)
   "Returns the length of a line in STR before the newline, assuming that all
 lines are of the same length in STR."
   (ppcre:scan "\\n" str))
 
-(defun convert-2d-string-index-to-1d (2d-index-list line-length-upto-newline)
-  ;; increment, multiply, add
-  (destructuring-bind (x y) 2d-index-list
-    (+ (* (1+ line-length-upto-newline)
-          y)
-       x)))
-
-(defun convert-1d-string-index-to-2d (flat-index line-length-upto-newline)
-  ;; subtract, divide, decrement
-  (let ((y (floor flat-index
-                  (1+ line-length-upto-newline)))
-        (x (mod flat-index
-                (1+ line-length-upto-newline))))
-    (list x y)))
-
-(defun get-symbol-indicies-in-multiline-str (str-to-search pattern-to-look-for)
-  (let ((line-length (get-line-length str-to-search))
-        (result-list nil)
-        (first-match-position (ppcre:scan pattern-to-look-for str-to-search)))
-    (do ((current-match-position first-match-position
-                                 (ppcre:scan pattern-to-look-for str-to-search
-                                             :start (1+ current-match-position))))
-        ((not current-match-position) result-list)
-      (push (convert-1d-string-index-to-2d current-match-position line-length)
-            result-list))))
-
-
-
-
-
-                                        ; => (15 16 16 17 17 18 30 31 31 32 32 33 51 52 52 53 53 54 57 58 58 59 59 60 63 64
-                                        ; 64 65 65 66 107 108 108 109 109 110 114 115 115 116 116 117 127 128 128 129
-                                        ; 129 130)
-
-(defun reshape-results (search-results)
+(defun reshape-results (search-results &optional working-with-symbols?)
+  "Return an list of values with cells of the form (START END) representing
+the inclusive start and end indices of where numbers or symbols are located. If
+WORKING-WITH-SYMBOLS? is T, then return a list of ints represeting their indices
+in the line they were searched for in according to SEARCH-RESULTS."
   (labels ((recursive-reshaper (accum rest)
              (if rest
-                 (let ((x (car rest))
-                       (y (cadr rest)))
-                   (recursive-reshaper (cons (cons x y) accum) (cddr rest)))
+                 (let ((start (car rest))
+                       (end (cadr rest)))
+                   (if working-with-symbols?
+                       (recursive-reshaper (cons start accum)
+                                           (cddr rest))
+                       (recursive-reshaper (cons (list start (1- end)) accum)
+                                           (cddr rest))))
                  accum)))
-    (recursive-reshaper nil (remove-duplicates search-results))))
+    (recursive-reshaper nil search-results)))
 
-(ppcre:all-matches *number-regex* "...............307............130..................969...601...186.........................................312....628..........878..........")
-                                        ; => (15 16 16 17 17 18 30 31 31 32 32 33 51 52 52 53 53 54 57 58 58 59 59 60 63 64
-                                        ; 64 65 65 66 107 108 108 109 109 110 114 115 115 116 116 117 127 128 128 129
-                                        ; 129 130)
-(reshape-results (ppcre:all-matches *number-regex* "...............307............130..................969...601...186.........................................312....628..........878.........."))
-                                        ; => ((129 . 130) (127 . 128) (116 . 117) (114 . 115) (109 . 110) (107 . 108)
-                                        ; (65 . 66) (63 . 64) (59 . 60) (57 . 58) (53 . 54) (51 . 52) (32 . 33)
-                                        ; (30 . 31) (17 . 18) (15 . 16))
+(defun get-numbers-and-symbols-in-line (line)
+  (list (reshape-results (ppcre:all-matches *number-regex* line))
+        (reshape-results (ppcre:all-matches *symbol-regex* line) t)))
 
-                                        ; => ((129 . 130) (128 . 129) (127 . 128) (116 . 117) (115 . 116) (114 . 115)
-                                        ; (109 . 110) (108 . 109) (107 . 108) (65 . 66) (64 . 65) (63 . 64) (59 . 60)
-                                        ; (58 . 59) (57 . 58) (53 . 54) (52 . 53) (51 . 52) (32 . 33) (31 . 32)
-                                        ; (30 . 31) (17 . 18) (16 . 17) (15 . 16))
+(destructuring-bind (numbers symbols) (get-numbers-and-symbols-in-line
+                                       ".....*...=.875*342......$........................@........-.....846.........610..829.934*508...79............&691..48...................483.")
+  (print numbers)
+  (print symbols))
 
+(defun number-adjacent-p (number-start-and-end-indices symbol-index)
+  (((labels ((number-index-adjacent-p (number-index symbol-index)
+               (destructuring-bind (number-x number-y symbol-x symbol-y)
+                   (append number-index symbol-index)
+                 ;; number is directly right of symbol
+                 (or (and (= number-y symbol-y)
+                          (= (1+ number-x) symbol-x))
+                     ;; number is directly left of symbol
+                     (and (= number-y symbol-y)
+                          (= (1- number-x) symbol-x))
+                     ;; number is directly above (ie row - 1) of symbol
+                     (and (= (1- number-y) symbol-y)
+                          (= number-x symbol-x))
+                     ;; number is directly below (ie row + 1) of symbol
+                     (and (= (1+ number-y) symbol-y)
+                          (= number-x symbol-x))
+                     ;; number is diagonal down-right
+                     (and (= (1+ number-y) symbol-y)
+                          (= (1+ number-x) symbol-x))
+                     ;; number is diagonal down-left
+                     (and (= (1+ number-y) symbol-y)
+                          (= (1- number-x) symbol-x))
+                     ;; number is diagonal up-right
+                     (and (= (1- number-y) symbol-y)
+                          (= (1+ number-x) symbol-x))
+                     ;; number is diagonal up-left
+                     (and (= (1- number-y) symbol-y)
+                          (= (1- number-x) symbol-x))))))
+      (destructuring-bind (number-start-index number-end-index)
+          (or (number-start-index symbol-index)
+              (number-end-index symbol-index)))))))
 
-(defun number-adjacent-p (number-index symbol-index)
-  (destructuring-bind (number-x number-y) number-index
-    (destructuring-bind (symbol-x symbol-y) symbol-index
-      ;; number is directly right of symbol
-      (or (and (= number-y symbol-y)
-               (= (1+ number-x) symbol-x))
-          ;; number is directly left of symbol
-          (and (= number-y symbol-y)
-               (= (1- number-x) symbol-x))
-          ;; number is directly above (ie row - 1) of symbol
-          (and (= (1- number-y) symbol-y)
-               (= number-x symbol-x))
-          ;; number is directly below (ie row + 1) of symbol
-          (and (= (1+ number-y) symbol-y)
-               (= number-x symbol-x))
-          ;; number is diagonal down-right
-          (and (= (1+ number-y) symbol-y)
-               (= (1+ number-x) symbol-x))
-          ;; number is diagonal down-left
-          (and (= (1+ number-y) symbol-y)
-               (= (1- number-x) symbol-x))
-          ;; number is diagonal up-right
-          (and (= (1- number-y) symbol-y)
-               (= (1+ number-x) symbol-x))
-          ;; number is diagonal up-left
-          (and (= (1- number-y) symbol-y)
-               (= (1- number-x) symbol-x))))))
-
-;; for every number want to
-
-
-(let* ((text (str:from-file "./input-p1-p2.txt"))
-       (symbols (get-symbol-indicies-in-multiline-str text *symbol-regex*))
-       (numbers (get-symbol-indicies-in-multiline-str text *number-regex*))
-       ;; i know this probably isn't the most efficient, but it felt like an easy functional way to do things
-       (numbers-by-symbols (mapcar (lambda (symbol-idx)
-                                     (remove-if-not (lambda (number-idx)
-                                                      (number-adjacent-p number-idx symbol-idx))
-                                                    numbers))
-                                   symbols)))
-  numbers-by-symbols)
 
 (defun idkman (multiline-str)
   (let ((line-length (get-line-length multiline-str)))
