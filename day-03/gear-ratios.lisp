@@ -110,6 +110,8 @@ in the line they were searched for in according to SEARCH-RESULTS."
                                                                                        current-line-symbols))
                         (adjacent-numbers (get-numbers-from-indices adjacent-indices
                                                                     (list last-line current-line next-line))))
+                   (print adjacent-indices)
+                   (print adjacent-numbers)
                    (check-for-syms-around-nums (append adjacent-numbers accum)
                                                current-line-numbers ; make this line last line
                                                numbers-in-next-line ; make next line this line
@@ -127,11 +129,25 @@ in the line they were searched for in according to SEARCH-RESULTS."
                                   third-line-numbers
                                   lines))))
 
-                                        ; => ((2 4) (6 8) (2 3) (0 2) (6 8) (0 2) (2 3))
+;; should what happens with my implementation is that if there's a case where
+;; you have a line like this:
+;; 467..114..
+;; ...*......
+;; ..35..633.
+;; then it'll say that matching indices are ((0 . 2) (2 . 3))
+;; - representing the numbers 467 and 35 in first line and last line
+;; but when it tries to match the indices to numbers, it seems that it'll match
+;; - from first line: 467, 7 (last number in 467)
+;; - from last line: 35
+;; but problem is we match the matching index in first and last line when we
+;; should only match it in first. a potential idea to fix is maybe inject a row
+;; distinguisher in number matches and change the get-adjacent-numbers-in-line
+;; function to return differently based on the row distinguisher we find in that
+;; row's matches.
 
 (defun solve-part-one ()
   (let* ((file-lines (get-file-contents "./input-p1-ex.txt"))
-         (adjacent-numbers (get-indices-of-numbers-adjacent-to-symbols file-lines)))
+         (adjacent-numbers (step (get-indices-of-numbers-adjacent-to-symbols file-lines))))
     (reduce '+ adjacent-numbers)))
 
 (solve-part-one)
