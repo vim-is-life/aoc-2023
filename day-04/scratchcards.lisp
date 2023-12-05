@@ -7,6 +7,7 @@
 ;; (load "../quicklisp/setup.lisp")
 (load "../utils.lisp")
 
+;;; part 1: figure out which numbers in the card appear in the list of winning numbers jj
 (defun get-matching-numbers (line)
   (let* ((after-colon (cadr (str:split ":" line)))
          (columns (str:split "|" after-colon))
@@ -18,12 +19,17 @@
 ;; (matching-numbers (mapcan 'parse-integer matches))
 
 (defun get-points-for-matches (list-of-matches)
-  (cond ((null list-of-matches)         0)
-        ((= 1 (length list-of-matches)) 1)
-        (t (reduce (lambda (result cur)
-                     (cond ((and (stringp result) cur) 2)
-                           (cur (* 2 result))))
-                   list-of-matches))))
+  ;; if points and matches are like following:
+  ;; 0 matches -> 0 pts
+  ;; 1 matches -> 1 pts
+  ;; 2 matches -> 2 pts
+  ;; 3 matches -> 4 pts
+  ;; then it's given by 2^(matches - 1) for matches > 0 and 0 for matches = 0
+  ;; not that (length nil) => 0
+  (let ((number-of-matches (length list-of-matches)))
+    (if (zerop number-of-matches)
+        0
+        (expt 2 (1- number-of-matches)))))
 
 (defun solve-part-one ()
   (let* ((lines   (get-file-contents "./input-p1-p2.txt"))
