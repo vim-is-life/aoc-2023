@@ -136,4 +136,4 @@ representation of the number (1:\"one\")."
                                          (get-file-contents filename))))
     (reduce '+ numbers-found-in-lines)))
 
-(print (solve-part-two))
+;; (print (solve-part-two))
