@@ -1,4 +1,4 @@
-;;;; Program to solve Advent of Code 2023's Day 4 problem.
+;;;; Program to solve    Advent of Code 2023's Day 4 problem.
 ;;;; To solve part 1, call (solve-part-one) in the REPL, and for two you can
 ;;;; call (solve-part-two).
 ;;;; Author: vim-is-life
@@ -38,3 +38,35 @@
     (reduce '+ points)))
 
 (solve-part-one)
+
+;;; part 2: find total scratchcards we end up with at end given
+;;; that for every scratchcard you have your number of matches causes you to win
+;;; more scratchcards equal to the number of matches you have
+
+;;; if you are at card 10, 5 winning cards, you win one copy each of next 5 cards
+;;; if have n winning numbers for given card
+;;; - win 1 copy each of next n cards
+
+(defun solve-part-two ()
+  (let* ((lines (get-file-contents "./input-p1-p2.txt"))
+         (number-cards (length lines))
+         (number-matches-per-cards (map 'vector (lambda (line)
+                                                  (length (get-matching-numbers line)))
+                                        lines))
+         ;; make array of 1d of size NUMBER-CARDS, start with 1 inside because
+         ;; you have 1 original of every card
+         (card-copies (make-array (list number-cards) :initial-element 1)))
+    (do ((card-no 0 (1+ card-no)))
+        ((= card-no number-cards))
+      (let ((num-copies (if (zerop card-no) 0 (1- (aref card-copies (1- card-no)))))
+            (nums-from-current-to-copy (aref number-matches-per-cards card-no)))
+        ;; (format t "found ~a matches on card ~a with ~a copies~%" nums-from-current-to-copy card-no num-copies)
+        (do ((copying-idx card-no (1+ copying-idx)))
+            ((= copying-idx (+ card-no nums-from-current-to-copy)))
+          (let ((old-value (aref card-copies copying-idx)))
+            (setf (aref card-copies copying-idx)
+                  (+ old-value 1 num-copies))))))
+    (reduce '+ card-copies)))
+
+;; (solve-part-two)
+                                        ; => 11024379 (24 bits, #xA837FB)
