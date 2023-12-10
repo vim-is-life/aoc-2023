@@ -76,10 +76,9 @@ SOURCE is one of:
                                (make-source-dest-rule :start src-range-start
                                                       :end   (+ src-range-start  (1- range-len))
                                                       :rule  (- dest-range-start src-range-start))))
-                         (recur (cdr lines) (cons new-rule acc)))))
+                         (recur rest (cons new-rule acc)))))
                    acc)))
-      (recur (cdr (str:lines search-region))
-             nil))))
+      (recur (cdr (str:lines search-region)) nil))))
 
 (defun get-seed-values (str)
   "Returns the found seed values in STR as a list of integers."
@@ -114,62 +113,37 @@ source it takes in and its cdr is a series of SOURCE-DEST-RULEs."
 ;;; but now, seed numbers are given as ranges, ie in first line every pair gives
 ;;; seeds where left is start of range and right is length of range
 
-(defun get-seeds-from-range (start length &optional acc)
-  (if (= length 0)
-      acc
-      (get-seeds-from-range (1+ start) (1- length) (cons start acc))))
+(defun find-min-location-in-seed-range (range-pair rules-alist)
+  (destructuring-bind (range-start range-length) range-pair
+    (let ((min-location (get-seed-location range-start rules-alist)))
+      (do ((seed-number (1+ range-start) (1+ seed-number)))
+          ((= seed-number (+ range-start range-length)))
+        (let ((cur-seed-location (get-seed-location seed-number rules-alist)))
+          (when (< cur-seed-location min-location)
+            (setf min-location cur-seed-location))))
+      min-location)))
 
+(defun double-up (lst)
+  "Return a list of pairs of the elements in LST. Example
+(double-up (5 6 7 8)) => ((5 6) (7 8))"
+  (loop :for (first second) :on lst :by 'cddr
+        :collect (list first second)))
 
-(defun get-seed-values-p2 (str)
-  "Returns the found seed values in STR as a list of integers."
-  (let* ((line-length (ppcre:scan "\\n" str))
-         (seed-line-numbers (mapcar #'parse-integer
-                                    (ppcre:all-matches-as-strings "\\d.*?\\b" str :end line-length)))
-         (seeds (loop for (range-start range-len) on seed-line-numbers
-                        by 'cddr
-                      collect (get-seeds-from-range range-start range-len))))
-    (reduce #'append seeds)))
-
-(defun get-region-map-p2 (source str)
-  "Return a hash table of source to destination mappings found by searching STR,
-where source is SOURCE and destination is what SOURCE maps to.
-SOURCE is one of:
-'seed
-'soil
-'fertilizer
-'water
-'light
-'temperature
-'humidity"
-  (let* ((region (case source
-                   ('seed        "seed-to-soil")
-                   ('soil        "soil-to-fertilizer")
-                   ('fertilizer  "fertilizer-to-water")
-                   ('water       "water-to-light")
-                   ('light       "light-to-temperature")
-                   ('temperature "temperature-to-humidity")
-                   ('humidity    "humidity-to-location")))
-         (search-text  (concatenate 'string region " map:"))
-         (region-start (search search-text str))
-         ;; have to search end with regex because can't get builtin SEARCH to
-         ;; match two newlines in a row for some reason
-         (region-end    (ppcre:scan "\\n\\n" str :start region-start))
-         (search-region (subseq str region-start region-end))
-         (lines         (str:lines search-region))
-         (rules-list))
-    (dolist (line lines rules-list)
-      (destructuring-bind (dest-range-start src-range-start range-len)
-          (mapcar #'parse-integer (str:words line))
-        (let ((new-rule (make-source-dest-rule :start src-range-start
-                                               :end   (+ src-range-start  (1- range-len))
-                                               :rule  (- dest-range-start src-range-start))))
-          (push new-rule rules-list))))))
-
+;; solution works! note: this is not optimized at all really. a task for another
+;; time will be for me to come back and try to optimize it, but as of right now
+;; in current configuration it takes about 1hr 10min
+(setf lparallel:*kernel* (lparallel:make-kernel 6))
 (defun solve-part-two ()
-  (let* ((seeds-to-plant (get-seed-values-p2 *puzzle-input*)))
-    seeds-to-plant))
+  (declaim (optimize (speed 3) (safety 0)))
+  (let* ((region-maps (mapcar (lambda (src) (cons src (get-region-map src *puzzle-input*)))
+                              '(seed soil fertilizer water light temperature humidity)))
+         (seed-ranges (double-up (get-seed-values *puzzle-input*)))
+         (lowest-location-numbers (lparallel:pmapcar (lambda (range-pair)
+                                                       (find-min-location-in-seed-range range-pair region-maps))
+                                                     seed-ranges))
+         (lowest-location-number (reduce #'min lowest-location-numbers)))
+    (print lowest-location-number)))
 
-;; (solve-part-two)
 ;; since we have issue where sbcl stalls as we try to run the program, (ie it
 ;; maxes out mem and then drops to 0 cpu) maybe don't try to store all the
 ;; values to map on them etc. instead, we could maybe have a function that
