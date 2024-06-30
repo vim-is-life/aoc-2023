@@ -12,6 +12,7 @@ My environment for anyone curious is:
   - With `:editor lispy` and `:lang common-lisp` enabled in my `init.el`
 - With SBCL v2.3.10
 - On Arcolinux:
+
    ```
 NAME=ArcoLinux
 ID=arcolinux
