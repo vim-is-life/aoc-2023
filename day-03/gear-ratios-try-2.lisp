@@ -47,7 +47,8 @@ return LOWER, or if IDX is above or equal to UPPER, return (1- UPPER)."
           ((is-char-symbol? (aref line-below left-idx))))))
 
 (defun gear! (problem-input-lines)
-  "PROBLEM-INPUT-LINES: a vector of strings containing the lines representing the text of the
+  "Return the solution to part 1 of the day 3 problem.
+PROBLEM-INPUT-LINES: a vector of strings containing the lines representing the text of the
 problem"
   (loop
     :for line-idx :below (length problem-input-lines)
@@ -88,6 +89,54 @@ problem"
                            (incf grand-total accum)))))))
 
 
-
-
 (gear! +real-input+)                    ; => 525911
+
+;;;; PART 2
+(defun read-in-num (line-idx char-idx input-lines direction)
+  "Return the full number at the index based on the DIRECTION in which to read
+the number.
+
+LINE-IDX: The index of the line in which to read from.
+CHAR-IDX: The index of the character with which to start reading in a number.
+INPUT-LINES-DIRECTION: The direction in which to read characters to form the
+  number. One of the symbols :LEFT, :RIGHT, or :MIDDLE.
+
+For instance, if you want to parse the line below where this is line idx 3:
+  738*..617.*43
+and you want to parse the 738 before the *, you would call
+  (read-in-num 3 2 :left)
+but if you want parse the 43 after the second *, you would call
+  (read-in-num 3 11 :right)
+but if you want to parse the 617 in the middle from the middle 1 (say that there's
+a star above), you would call
+   (read-in-num 3 7 :middle)"
+  (let ((problem-line (aref input-lines line-idx)))
+    (flet ((read-right (inner-char-idx)
+             (loop :for idx :from inner-char-idx :below (length problem-line)
+                   :for current-char = (aref problem-line idx)
+                   :with accum = 0
+                   :do (if (digit-char-p current-char)
+                           (setf accum (+ (parse-integer (string current-char))
+                                          (* 10 accum)))
+                           (return accum))
+                   :finally (return accum)))
+           (read-left (inner-char-idx)
+             (loop :for idx :from inner-char-idx :downto 0
+                   :for current-char = (aref problem-line idx)
+                   :for number-place = 1 :then (* 10 number-place)
+                   :with accum = 0
+                   :do (if (digit-char-p current-char)
+                           (let ((cur-char-as-num (parse-integer (string current-char))))
+                             (setf accum (+ (* number-place cur-char-as-num)
+                                            accum)))
+                           (return accum))
+                   :finally (return accum))))
+      (case direction
+        (:right (read-right char-idx))
+        (:left (read-left char-idx))
+        (:middle (let* ((from-left (read-left char-idx))
+                        (from-right (read-right (1+ char-idx)))
+                        (left-shift (expt 10 (1- (length (write-to-string from-left))))))
+                   (+ (* from-left left-shift) from-right)))))))
+
+
