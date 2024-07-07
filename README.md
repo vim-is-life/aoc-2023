@@ -13,7 +13,7 @@ My environment for anyone curious is:
 - With SBCL v2.3.10
 - On Arcolinux:
 
-   ```
+```
 NAME=ArcoLinux
 ID=arcolinux
 ID_LIKE=arch
@@ -23,7 +23,7 @@ HOME_URL="https://arcolinux.info/"
 SUPPORT_URL="https://arcolinuxforum.com/"
 BUG_REPORT_URL="https://github.com/arcolinux"
 LOGO=arcolinux-hello
-   ```
+```
 
 ## Resources used
 The resources that I'm using for anyone curious are:
