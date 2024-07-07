@@ -89,9 +89,24 @@ problem"
                            (incf grand-total accum)))))))
 
 
-(gear! +real-input+)                    ; => 525911
+(gear! +real-input+)
+;; => 525911
 
 ;;;; PART 2
+(defun prep-input (lines)
+  (let* ((text-len (length (first lines)))
+         (blank-line (make-string text-len :initial-element #\.))
+         (text (copy-seq lines)))
+    (push blank-line text)
+    (nconc text `(,blank-line))))
+
+(defconstant +p2-example-input+ (coerce
+                                 (prep-input (get-file-contents "input-p1-ex.txt"))
+                                 'vector))
+(defconstant +p2-real-input+ (coerce
+                              (prep-input (get-file-contents "input-p1-p2.txt"))
+                              'vector))
+
 (defun read-in-num (line-idx char-idx input-lines direction)
   "Return the full number at the index based on the DIRECTION in which to read
 the number.
@@ -140,9 +155,14 @@ a star above), you would call
                         (sides-combined (concatenate 'string left-side right-side)))
                    (parse-integer sides-combined)))))))
 
-(read-in-num 1 1 +p2-example-input+ :middle)
+;; (read-in-num 1 1 +p2-example-input+ :middle)
 
-(defun check-around (line-idx char-idx input-lines)
+(defun get-numbers-around (line-idx char-idx input-lines)
+  "Return a list of all the numbers around the given character at the coordinates.
+
+LINE-IDX: the line index of the character in question
+CHAR-IDX: the index of the character in the given line
+INPUT-LINES: the vector of strings representing the problem input"
   (flet ((num-at? (coords)
            (destructuring-bind (line-idx char-idx) coords
              (digit-char-p (aref (aref input-lines line-idx) char-idx))
@@ -158,7 +178,38 @@ a star above), you would call
            (right-idx (clamp-index (1+ char-idx) 0 width))
            (locs-to-check `((,above-idx ,left-idx) (,above-idx ,char-idx) (,above-idx ,right-idx)
                             (,line-idx ,left-idx)   (,line-idx ,right-idx)
-                            (,below-idx ,left-idx) (,below-idx ,char-idx) (,below-idx ,right-idx))))
-      (mapcar #'num-at? locs-to-check))))
+                            (,below-idx ,left-idx) (,below-idx ,char-idx) (,below-idx ,right-idx)))
+           (result (mapcar #'num-at? locs-to-check)))
+      (remove-duplicates (remove nil result)))))
 
+;; (get-numbers-around 9 5 +p2-example-input+)
 
+(defun get-sum-of-line-gear-ratios (line-idx input-lines)
+  "Return the sum of the gear ratios in the line, where the gear ratio is the product of the
+number pair adjacent to a star (*) that only has two adjacent numbers.
+Note that this function assumes that it cannot go out of bounds by going to the line above or
+below the given line. You can prepare the input for this by adding a line of dots to the top
+and bottom before calling the function.
+
+LINE-IDX: the index of the line in question
+INPUT-LINES: the array of strings representing the lines in the problem input"
+  (loop :with current-line = (aref input-lines line-idx)
+        :with star = #\*
+        :for char-idx :below (length current-line)
+        :for current-char = (aref current-line char-idx)
+        :summing (if (eql current-char star)
+                     (let ((numbers-around (get-numbers-around line-idx char-idx
+                                                               input-lines)))
+                       (if (= (length numbers-around) 2)
+                           (* (first numbers-around) (second numbers-around))
+                           0))
+                     0)))
+
+(defun gear2! (problem-input)
+  "NOTE: this function assumes you've expanded the input by adding one blank
+line to the beginning and end of the input"
+  (loop :for line-idx :from 1 :below (1- (length problem-input))
+        :summing (get-sum-of-line-gear-ratios line-idx problem-input)))
+
+(gear2! +p2-real-input+)
+;; => 75805607 (27 bits, #x484B3A7)
