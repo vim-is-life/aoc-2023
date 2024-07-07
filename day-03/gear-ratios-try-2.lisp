@@ -111,32 +111,54 @@ but if you want to parse the 617 in the middle from the middle 1 (say that there
 a star above), you would call
    (read-in-num 3 7 :middle)"
   (let ((problem-line (aref input-lines line-idx)))
-    (flet ((read-right (inner-char-idx)
-             (loop :for idx :from inner-char-idx :below (length problem-line)
-                   :for current-char = (aref problem-line idx)
-                   :with accum = 0
-                   :do (if (digit-char-p current-char)
-                           (setf accum (+ (parse-integer (string current-char))
-                                          (* 10 accum)))
-                           (return accum))
-                   :finally (return accum)))
-           (read-left (inner-char-idx)
-             (loop :for idx :from inner-char-idx :downto 0
-                   :for current-char = (aref problem-line idx)
-                   :for number-place = 1 :then (* 10 number-place)
-                   :with accum = 0
-                   :do (if (digit-char-p current-char)
-                           (let ((cur-char-as-num (parse-integer (string current-char))))
-                             (setf accum (+ (* number-place cur-char-as-num)
-                                            accum)))
-                           (return accum))
-                   :finally (return accum))))
+    (flet ((read-right (idx &key (return-number? t))
+             (let ((accum (make-array 0 :element-type 'character
+                                        :fill-pointer 0 :adjustable t)))
+               (loop :for char-idx :from idx :below (length problem-line)
+                     :for current-char = (aref problem-line char-idx)
+                     :while (digit-char-p current-char)
+                     :do (vector-push-extend current-char accum))
+               (if return-number?
+                   (parse-integer accum)
+                   accum)))
+           (read-left (idx &key (return-number? t))
+             (let ((accum (make-array 0 :element-type 'character
+                                        :fill-pointer 0 :adjustable t)))
+               (loop :for char-idx :from idx :downto 0
+                     :for current-char = (aref problem-line char-idx)
+                     :while (digit-char-p current-char)
+                     :do (vector-push-extend current-char accum))
+               (setf accum (reverse accum))
+               (if return-number?
+                   (parse-integer accum)
+                   accum))))
       (case direction
         (:right (read-right char-idx))
         (:left (read-left char-idx))
-        (:middle (let* ((from-left (read-left char-idx))
-                        (from-right (read-right (1+ char-idx)))
-                        (left-shift (expt 10 (1- (length (write-to-string from-left))))))
-                   (+ (* from-left left-shift) from-right)))))))
+        (:middle (let* ((left-side (read-left char-idx :return-number? nil))
+                        (right-side (read-right (1+ char-idx) :return-number? nil))
+                        (sides-combined (concatenate 'string left-side right-side)))
+                   (parse-integer sides-combined)))))))
+
+(read-in-num 1 1 +p2-example-input+ :middle)
+
+(defun check-around (line-idx char-idx input-lines)
+  (flet ((num-at? (coords)
+           (destructuring-bind (line-idx char-idx) coords
+             (digit-char-p (aref (aref input-lines line-idx) char-idx))
+             (if (digit-char-p (aref (aref input-lines line-idx) char-idx))
+                 (read-in-num line-idx char-idx input-lines :middle)))))
+    ;; top-left     top-middle      top-right
+    ;; left                         right
+    ;; bottom-left  bottom-middle   bottom-right
+    (let* ((width (length (aref input-lines 0)))
+           (above-idx (1- line-idx))
+           (below-idx (1+ line-idx))
+           (left-idx (clamp-index (1- char-idx) 0 width))
+           (right-idx (clamp-index (1+ char-idx) 0 width))
+           (locs-to-check `((,above-idx ,left-idx) (,above-idx ,char-idx) (,above-idx ,right-idx)
+                            (,line-idx ,left-idx)   (,line-idx ,right-idx)
+                            (,below-idx ,left-idx) (,below-idx ,char-idx) (,below-idx ,right-idx))))
+      (mapcar #'num-at? locs-to-check))))
 
 
