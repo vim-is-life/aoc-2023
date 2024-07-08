@@ -96,18 +96,20 @@ of the vector INPUT-LINES and WIDTH refers to the length of an element of INPUT-
 ;;   (setf (aref arr 1 3) 5)
 ;;   arr)
 
+;; TODO account for distance or find way to add in distance
 (defun solve-part-one (input)
   (let ((pipe-queue (make-instance 'queue))
-        (dist-array (make-dist-array input))
-        (max-dist (* 10000 -1))
+        ;; (dist-array (make-dist-array input))
+        ;; (max-dist (* 10000 -1))
         (starting-pos (get-start-pos input)))
     (enqueue pipe-queue starting-pos)
     (loop :until (qempty? pipe-queue)
           :for coords = (dequeue pipe-queue)
           :for line-idx = (first coords)
           :for char-idx = (second coords)
-          :for neighbors = (get-neigbors line-idx char-idx input)
-          :do (print neighbors))))
+          :for neighbors = (get-neigbors line-idx char-idx input) :do
+            (loop :for (neighbor-line neighbor-char) :in neighbors
+                  :do (format t "~%~A ~A" neighbor-line neighbor-char)))))
 
 (solve-part-one +example-input+)
 ;; (solve-part-one +puzzle-input+)
