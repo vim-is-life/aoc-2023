@@ -98,23 +98,39 @@ of the vector INPUT-LINES and WIDTH refers to the length of an element of INPUT-
 
 ;; TODO account for distance or find way to add in distance
 (defun solve-part-one (input)
-  (let ((pipe-queue (make-instance 'queue))
-        ;; (dist-array (make-dist-array input))
-        ;; (max-dist (* 10000 -1))
-        (starting-pos (get-start-pos input)))
-    (enqueue pipe-queue starting-pos)
-    (loop :until (qempty? pipe-queue)
-          :for coords = (dequeue pipe-queue)
-          :for line-idx = (first coords)
-          :for char-idx = (second coords)
-          :for neighbors = (get-neigbors line-idx char-idx input) :do
-            (loop :for (neighbor-line neighbor-char) :in neighbors
-                  :do (format t "~%~A ~A" neighbor-line neighbor-char)))))
+  (flet ((new-neighbor? (coords dist-array)
+           (destructuring-bind (line-idx char-idx) coords
+             (= -1 (aref dist-array line-idx char-idx)))))
+    (let ((pipe-queue (make-instance 'queue))
+          (dist-array (make-dist-array input))
+          (max-dist (* 10000 -1))
+          (starting-pos (get-start-pos input)))
+      (enqueue pipe-queue (list 0 starting-pos))
+      (loop :until (qempty? pipe-queue)
+            :for info = (dequeue pipe-queue)
+            :for current-dist = (first info)
+            :for coords = (second info)
+            :for line-idx = (first coords)
+            :for char-idx = (second coords)
+            :for neighbors = (get-neigbors line-idx char-idx input) :do
+              (progn
+                (loop :for neighbor :in neighbors
+                      :if (new-neighbor? neighbor dist-array)
+                        :do (enqueue pipe-queue (list (1+ current-dist) neighbor)))
+                (setf (aref dist-array line-idx char-idx) current-dist)
+                (when (> current-dist max-dist)
+                  (setf max-dist current-dist))))
+      max-dist)))
 
-(solve-part-one +example-input+)
-;; (solve-part-one +puzzle-input+)
+
+;; (solve-part-one +example-input+)
+(solve-part-one +puzzle-input+)
+;; => 6870 (13 bits, #x1AD6)
 
 ;;; PART TWO
+(defun get-array-of-visited-tiles (problem-input)
+  "Return a two dimensional array where every tile in the loop is marked as 'L
+and everything else is marked as 'E (L for in Loop and E for Exterior)")
 
 (defun solve-part-two (input)
   t)
