@@ -6,6 +6,21 @@
 
 (in-package :aoc-2023)
 
+(defun fact (n)
+  "Return the factorial of N."
+  (labels ((recur (n acc)
+             (if (zerop n)
+                 acc
+                 (recur (1- n) (* acc n)))))
+    (recur n 1)))
+
+(defun combinations (n r)
+  "Return the number of combinations *with no repitition* where N is the number
+of things to choose from and R is how many we choose."
+  (/ (fact n)
+     (* (fact r)
+        (fact (- n r)))))
+
 (defun get-file-contents (filename)
   "Return a list of strings where each string line in the file FILENAME."
   (uiop:read-file-lines filename))
