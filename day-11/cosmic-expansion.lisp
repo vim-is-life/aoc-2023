@@ -122,17 +122,80 @@ represents each galaxy's unique number in UNIVERSE-VEC."
                               (incf highest-id)))
         :finally (return galaxy-ids)))
 
-;; (->> (get-galaxy-ids (-> +d11/example-input+
-;;                        expand-universe-inorder
-;;                        list-of-lists-to-vecvec)
-;;                      (num-galaxies +d11/example-input+))
-;;   (alexandria:hash-table-alist)
-;;   (mapc (lambda (elem) (print elem))))
+;; (-<>> (get-galaxy-ids (-> +d11/example-input+
+;;                         expand-universe-inorder
+;;                         list-of-lists-to-vecvec)
+;;                       (num-galaxies +d11/example-input+))
+;;   (alexandria:hash-table-keys)
+;;   (alexandria:map-combinations #'print <> :length 2))
 
-(defun d11/part-1 (input)
-  -1)
+(defun shortest-path-length (start-end-pair &key (debug t))
+  "Return the length of the shortest path between the points denoted by
+START-END-PAIR, where START-END-PAIR is a list of the form
+((START-LINE START-COL) (END-LINE END-COL))."
+  (labels ((drop-neg-pairs (list-of-pairs)
+             (remove-if (lambda (pair)
+                          (destructuring-bind (line col) pair
+                            (or (minusp line) (minusp col))))
+                        list-of-pairs))
+           (get-options (current-pos)
+             (destructuring-bind (cur-line cur-col) current-pos
+               (let ((options (-> `((,(1- cur-line) ,cur-col)
+                                    (,(1+ cur-line) ,cur-col)
+                                    (,cur-line      ,(1- cur-col))
+                                    (,cur-line      ,(1+ cur-col)))
+                                drop-neg-pairs)))
+                 options)))
+           (score-options (options end-pos)
+             (-<>> (mapcar (lambda (opt)
+                             (destructuring-bind ((start-line start-col) (end-line end-col))
+                                 `(,opt ,end-pos)
+                               `(,(+ (abs (- start-line end-line))
+                                     (abs (- start-col  end-col)))
+                                 ,opt)))
+                           options)
+               (reduce (lambda (best-so-far scored-opt)
+                         (let ((score-best (first best-so-far))
+                               (score-other (first scored-opt)))
+                           (if (< score-other score-best)
+                               scored-opt
+                               best-so-far)))
+                       <>)
+               second)))
+    (destructuring-bind (start end) start-end-pair
+      (let ((dist (loop :with pathlen = 0
+                        :for cur-pos = start :then (-> cur-pos
+                                                     get-options
+                                                     (score-options end))
+                        :for (cur-line cur-col) = cur-pos
+                        :while (not (equal cur-pos end))
+                        :counting cur-pos)))
+        (if debug
+            (progn
+              (format t "~%dist from ~A to ~A = ~A" start end dist))
+            dist)))))
 
-(assert (= (d11/part-1 +d11/example-input+) 374))
+
+
+(assert (= 9 (shortest-path-length '((5 1) (10 5)))))
+
+(defun d11/part-1 (input &key (debug nil))
+  ;; if we can get a function that will find dist between two pairs then we can
+  ;; use it with alexandria's map-combinations func
+  (let* ((num-galaxies      (num-galaxies input))
+         (expanded-univ     (expand-universe input))
+         (expanded-univ-vec (list-of-lists-to-vecvec expanded-univ))
+         (galaxy-ids        (get-galaxy-ids expanded-univ-vec num-galaxies))
+         (path-length-sum   0))
+    (alexandria:map-combinations
+     (lambda (start-end-pair)
+       (let ((dist (shortest-path-length start-end-pair
+                                         :debug debug)))
+         (incf path-length-sum dist)))
+     (alexandria:hash-table-keys galaxy-ids))
+    path-length-sum))
+
+(assert (= (d11/part-1 +d11/example-input+ :debug t) 374))
 
 ;;; PART 2
 (defun d11/part-2 (input)
