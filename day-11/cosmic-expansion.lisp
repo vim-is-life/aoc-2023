@@ -201,5 +201,67 @@ START-END-PAIR, where START-END-PAIR is a list of the form
 ;; => 9556712 (24 bits, #x91D2E8)
 
 ;;; PART 2
-(defun d11/part-2 (input)
-  -1)
+
+(defun expand-universe-bigboi (input repeat-factor)
+  "Return the expanded universe or expanded version of INPUT where all empty
+rows and columns are doubled (1 row -> 2 rows, and same for columns).
+Note that the columns and rows will come back reversed."
+  (labels ((repeat-row (count row acc)
+             (if (zerop count)
+                 acc
+                 (repeat-row (1- count) row (cons row acc))))
+           (exanpd-rows (rows acc)
+             (if rows
+                 (let ((row (first rows))
+                       (rest-rows (rest rows)))
+                   (if (every #'null row)
+                       ;; need to exanpd the row that has all empties
+                       (exanpd-rows rest-rows (repeat-row repeat-factor row acc))
+                       (exanpd-rows rest-rows (cons row acc))))
+                 acc)))
+    (-> input
+      ;; first pass: do rows
+      (exanpd-rows '())
+      ;; then have to transpose to do columns, then re-transpose
+      transpose
+      (exanpd-rows '())
+      transpose)))
+
+(assert (equal (expand-universe-bigboi +d11/example-input+ 2)
+               (expand-universe +d11/example-input+)))
+
+(expand-universe-bigboi +d11/example-input+ 2)
+
+(defun path-lengths-sum (input &key (debug nil) (repeat-factor 2))
+  ;; if we can get a function that will find dist between two pairs then we can
+  ;; use it with alexandria's map-combinations func
+  (let* ((num-galaxies      (num-galaxies input))
+         (expanded-univ     (expand-universe-bigboi input repeat-factor))
+         (expanded-univ-vec (list-of-lists-to-vecvec expanded-univ))
+         (galaxy-ids        (get-galaxy-ids expanded-univ-vec num-galaxies))
+         (path-length-sum   0))
+    (alexandria:map-combinations
+     (lambda (start-end-pair)
+       (let ((dist (shortest-path-length start-end-pair
+                                         :debug debug)))
+         (incf path-length-sum dist)))
+     (alexandria:hash-table-keys galaxy-ids)
+     :length 2)
+    path-length-sum))
+
+;; my path-lengths-sum func is kinda expensive and i dont feel like optimizing,
+;; so choose to cache slope to keep it speedy after it's warmed up
+(let* ((x1 2)
+       (y1 (path-lengths-sum +d11/puzzle-input+ :repeat-factor x1))
+       (x2 3)
+       (y2 (path-lengths-sum +d11/puzzle-input+ :repeat-factor x2))
+       (slope (/ (- y2 y1) (- x2 x1))))
+  (defun d11/part-2 (repeat-factor)
+    ;; turns out there is a linear relationship between the sum of the path
+    ;; lengths and the expansion factor, so solve by using point-slope
+    (+ (* slope
+          (- repeat-factor x1))
+       y1)))
+
+(d11/part-2 1000000)
+;; => 678626199476 (40 bits, #x9E014607B4)
