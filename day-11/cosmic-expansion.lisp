@@ -1,16 +1,30 @@
 (in-package :aoc-2023)
 
-(defconstant +d11/example-input+ (get-file-contents-vec "example-input.txt"))
-(defconstant +d11/puzzle-input+  (get-file-contents-vec "puzzle-input.txt"))
+(defun custom-read (filename)
+  "Read in the problem input where every galaxy is read in as T and each
+non-galaxy space is read in as NIL. Returns an array of rank 2"
+  (let* ((file-contents (get-file-contents-vec filename))
+         (num-lines   (length file-contents))
+         (num-columns (length (aref file-contents 0))))
+    (loop
+      :with arr = (make-array `(,num-lines ,num-columns) :initial-element nil)
+      :for line :below num-lines
+      :do (loop
+            :for col :below num-columns
+            :for cur-char = (-> file-contents (aref line) (aref col))
+            :when (eql cur-char #\#)
+              :do (setf (aref arr line col) t))
+      :finally (return arr))))
+
+(defconstant +d11/example-input+ (custom-read "example-input.txt"))
+(defconstant +d11/puzzle-input+  (custom-read "puzzle-input.txt"))
 
 ;;; PART 1
-(defun num-galaxies (input)
+(defun num-galaxies (input-arr)
   "Return the number of galaxies in the universe that INPUT represents"
-  (->> input
-    (map 'list
-         (lambda (line)
-           (count #\# line)))
-    (reduce #'+)))
+  (destructuring-bind (lines cols) (array-dimensions input-arr)
+    (let ((flat-input (make-array (* lines cols) :displaced-to input-arr)))
+      (count t flat-input))))
 
 ;; (num-galaxies +d11/example-input+)
 
