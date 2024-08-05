@@ -196,6 +196,9 @@ START-END-PAIR, where START-END-PAIR is a list of the form
     path-length-sum))
 
 (assert (= (d11/part-1 +d11/example-input+ :debug t) 374))
+;; this takes a couple seconds to eval
+;; (d11/part-1 +d11/puzzle-input+)
+;; => 9556712 (24 bits, #x91D2E8)
 
 ;;; PART 2
 (defun d11/part-2 (input)
