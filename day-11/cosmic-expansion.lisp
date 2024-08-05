@@ -172,10 +172,9 @@ START-END-PAIR, where START-END-PAIR is a list of the form
                         :counting cur-pos)))
         (if debug
             (progn
-              (format t "~%dist from ~A to ~A = ~A" start end dist))
+              (format t "~%dist from ~7A to ~7A = ~3D" start end dist)
+              dist)
             dist)))))
-
-
 
 (assert (= 9 (shortest-path-length '((5 1) (10 5)))))
 
@@ -192,7 +191,8 @@ START-END-PAIR, where START-END-PAIR is a list of the form
        (let ((dist (shortest-path-length start-end-pair
                                          :debug debug)))
          (incf path-length-sum dist)))
-     (alexandria:hash-table-keys galaxy-ids))
+     (alexandria:hash-table-keys galaxy-ids)
+     :length 2)
     path-length-sum))
 
 (assert (= (d11/part-1 +d11/example-input+ :debug t) 374))
