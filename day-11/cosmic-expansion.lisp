@@ -12,13 +12,19 @@
            (count #\# line)))
     (reduce #'+)))
 
-;; (num-galaxies +d11/puzzle-input+)
+;; (num-galaxies +d11/example-input+)
+
+(defun num-pairs (input)
+  "Return the number of galaxy pairs in the universe represented by INPUT"
+  (combinations (num-galaxies input) 2))
+
+;; (num-pairs +d11/example-input+)
 
 (defun d11/part-1 (input)
-  nil)
+  -1)
 
-(assert (= (d11/part-1)))
+(assert (= (d11/part-1 +d11/example-input+) 374))
 
 ;;; PART 2
 (defun d11/part-2 (input)
-  nil)
+  -1)
