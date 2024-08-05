@@ -153,7 +153,7 @@ and everything else is marked as 'E (L for in Loop and E for Exterior)"
             :for char-idx = (second coords)
             :for neighbors = (get-neigbors line-idx char-idx problem-input) :do
               (progn
-                (print coords)
+                ;; (print coords)
                 (loop :for neighbor :in neighbors
                       :if (new-neighbor? neighbor visited-array)
                         :do (enqueue pipe-queue neighbor))
@@ -161,6 +161,23 @@ and everything else is marked as 'E (L for in Loop and E for Exterior)"
       visited-array)))
 
 ;; (get-array-of-visited-tiles +example-input-2+)
+
+(defun turn-starting-piece-into-pipe (visited-array start-pos)
+  (destructuring-bind (start-line start-col) start-pos
+    (let ((north (aref visited-array (1- start-line) start-col))
+          (east  (aref visited-array start-line      (1+ start-col)))
+          (south (aref visited-array (1+ start-line) start-col))
+          (west  (aref visited-array start-line      (1- start-col))))
+      (cond ((and north west)  #\J)
+            ((and north south) #\|)
+            ((and north east)  #\L)
+            ((and south west)  #\7)
+            ((and south east)  #\F)
+            ((and east west)   #\-)))))
+
+;; (let ((visited-array (get-array-of-visited-tiles +example-input-2+))
+;;       (start-pos (get-start-pos +example-input-2+)))
+;;   (turn-starting-piece-into-pipe visited-array start-pos))
 
 (defun solve-part-two (input)
   t)
