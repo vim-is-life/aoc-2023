@@ -179,5 +179,38 @@ and everything else is marked as 'E (L for in Loop and E for Exterior)"
 ;;       (start-pos (get-start-pos +example-input-2+)))
 ;;   (turn-starting-piece-into-pipe visited-array start-pos))
 
+(defun get-loop-coords-in-order (visited-array input)
+  (flet ((seen-p (coords hash-tbl)
+           (gethash coords hash-tbl))
+         (set-visited (coords hash-tbl)
+           (setf (gethash coords hash-tbl) t)))
+    (let* ((start-pos (get-start-pos input))
+           (start-pipe (turn-starting-piece-into-pipe visited-array start-pos))
+           ;; below line needs to stay like this else we get weird circular ref
+           ;; that i dont understand right now
+           (inp (map 'vector #'copy-seq input)))
+      (destructuring-bind (start-line start-char) start-pos
+        (loop
+          :initially (setf (-> inp
+                             (aref start-line)
+                             (aref start-char))
+                           start-pipe)
+          :with to-visit = (get-neigbors start-line start-char inp)
+          :with visited = (make-hash-table :test #'equal)
+          :while to-visit
+          :for coords = (pop to-visit)
+          :for (line-idx char-idx) = coords
+          :for neighbors = (get-neigbors line-idx char-idx inp)
+          :do (set-visited coords visited)
+          :do (mapc (lambda (neighbor)
+                      (unless (seen-p neighbor visited)
+                        (push neighbor to-visit)))
+                    neighbors)
+          :collecting coords)))))
+
+(let* ((visited (get-array-of-visited-tiles +example-input-2+))
+       (loop-coords (alexandria:curry #'get-loop-coords-in-order visited)))
+  (funcall loop-coords +example-input-2+))
+
 (defun solve-part-two (input)
   t)
