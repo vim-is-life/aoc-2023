@@ -208,9 +208,51 @@ and everything else is marked as 'E (L for in Loop and E for Exterior)"
                     neighbors)
           :collecting coords)))))
 
-(let* ((visited (get-array-of-visited-tiles +example-input-2+))
-       (loop-coords (alexandria:curry #'get-loop-coords-in-order visited)))
-  (funcall loop-coords +example-input-2+))
+;; (let* ((visited (get-array-of-visited-tiles +example-input-2+))
+;;        (loop-coords (alexandria:curry #'get-loop-coords-in-order visited)))
+;;   (funcall loop-coords +example-input-2+))
+
+(defun area-of-loop (loop-coords)
+  "Return the area of the maze loop with coordinates LOOP-COORDS, which is an
+array of lists of the form (LINE-IDX CHAR-IDX)."
+  ;; so the loop-coords array is already gonna be in transposed form like
+  ;; x1 y1
+  ;; x2 y2
+  ;; ...
+  ;; below is taken directly from https://en.wikipedia.org/wiki/Shoelace_formula#Other_formulas
+  (labels ((recur (idx num-elems coords acc)
+             ;; have to do 1+ because we're getting left and right of idx
+             (if (< (1+ idx) num-elems)
+                 (let* ((pair_i-1 (aref coords (1- idx)))
+                        (pair_i   (aref coords idx))
+                        (pair_i+1 (aref coords (1+ idx)))
+                        (x_i      (first  pair_i))
+                        (y_i+1    (second pair_i+1))
+                        (y_i-1    (second pair_i-1))
+                        (res (* x_i
+                                (- y_i+1 y_i-1))))
+                   (recur (1+ idx) num-elems coords (+ acc res)))
+                 (abs (floor acc 2)))))
+    (recur 1 (length loop-coords) loop-coords 0)))
+
+;; (let* ((visited (get-array-of-visited-tiles +example-input-2+))
+;;        (loop-coords-list (get-loop-coords-in-order visited +example-input-2+))
+;;        (loop-coords (make-array (length loop-coords-list) :initial-contents loop-coords-list)))
+;;   (area-of-loop loop-coords))
+
+(defun num-enclosed-tiles (loop-area num-bounding-pts)
+  "Return the number of tiles enclosed by the loop given its area and number of
+points in the perimeter of the loop (or the number of points that are in the
+actual path that the loop makes)."
+  (1+ (- loop-area
+         (/ num-bounding-pts 2))))
+
+;; (let* ((visited (get-array-of-visited-tiles +example-input-2+))
+;;        (loop-coords-list (get-loop-coords-in-order visited +example-input-2+))
+;;        (loop-coords (make-array (length loop-coords-list) :initial-contents loop-coords-list)))
+;;   (-> loop-coords
+;;     area-of-loop
+;;     (num-enclosed-tiles (length loop-coords))))
 
 (defun solve-part-two (input)
   t)
