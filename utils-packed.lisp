@@ -25,9 +25,15 @@ of things to choose from and R is how many we choose."
   "Return a list of strings where each string line in the file FILENAME."
   (uiop:read-file-lines filename))
 
-(defun curry (function &rest args)
-  (lambda (&rest more-args)
-    (apply function (append args more-args))))
+(defun get-file-contents-vec (filename)
+  "Return a vector of strings where each string line in the file FILENAME."
+  (coerce (uiop:read-file-lines filename) 'vector))
+
+;; this doesn't really work the way i think it should, so i'll just use
+;; alexandria for now
+;; (defun curry (function &rest args)
+;;   (lambda (&rest more-args)
+;;     (apply function (append args more-args))))
 
 ;;; QUEUE ADT IMPLEMENTATION
 (defclass queue ()
