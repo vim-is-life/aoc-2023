@@ -244,8 +244,10 @@ array of lists of the form (LINE-IDX CHAR-IDX)."
   "Return the number of tiles enclosed by the loop given its area and number of
 points in the perimeter of the loop (or the number of points that are in the
 actual path that the loop makes)."
+  ;; this uses a rearrangement of pick's theorem. see
+  ;; https://en.wikipedia.org/wiki/Pick%27s_theorem#Formula
   (1+ (- loop-area
-         (/ num-bounding-pts 2))))
+         (floor num-bounding-pts 2))))
 
 ;; (let* ((visited (get-array-of-visited-tiles +example-input-2+))
 ;;        (loop-coords-list (get-loop-coords-in-order visited +example-input-2+))
@@ -255,4 +257,12 @@ actual path that the loop makes)."
 ;;     (num-enclosed-tiles (length loop-coords))))
 
 (defun solve-part-two (input)
-  t)
+  (let* ((visited (get-array-of-visited-tiles input))
+         (loop-coords-list (get-loop-coords-in-order visited input))
+         (loop-coords (make-array (length loop-coords-list) :initial-contents loop-coords-list)))
+    (-> loop-coords
+      area-of-loop
+      (num-enclosed-tiles (length loop-coords)))))
+
+(solve-part-two +puzzle-input+)
+;; => 287 (9 bits, #x11F)
