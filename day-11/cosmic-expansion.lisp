@@ -98,6 +98,37 @@ rows and columns are doubled (1 row -> 2 rows, and same for columns)."
 (assert (equal (expand-universe-inorder +d11/example-input+)
                (custom-read "example-expansion.txt")))
 
+(defun list-of-lists-to-vecvec (list-of-lists)
+  "Convert LIST-OF-LISTS to a vector of vectors."
+  (map 'vector
+       (lambda (row) (coerce row 'vector))
+       list-of-lists))
+
+;; (list-of-lists-to-vecvec (expand-universe +d11/example-input+))
+
+(defun get-galaxy-ids (universe-vec num-galaxies)
+  "Return a hashmap mapping coordinate-pair keys to numbered ID values, which
+represents each galaxy's unique number in UNIVERSE-VEC."
+  (loop :with galaxy-ids = (make-hash-table :test #'equal :size num-galaxies)
+        :with highest-id = -1           ; first is rly 0 because use incf in set
+        :with num-lines  = (length universe-vec)
+        :with num-cols   = (length (aref universe-vec 0))
+        :for line-idx :below num-lines
+        :for line :across universe-vec
+        :do (loop :for col-idx :below num-cols
+                  :for spc = (aref line col-idx)
+                  :if spc
+                    :do (setf (gethash `(,line-idx ,col-idx) galaxy-ids)
+                              (incf highest-id)))
+        :finally (return galaxy-ids)))
+
+;; (->> (get-galaxy-ids (-> +d11/example-input+
+;;                        expand-universe-inorder
+;;                        list-of-lists-to-vecvec)
+;;                      (num-galaxies +d11/example-input+))
+;;   (alexandria:hash-table-alist)
+;;   (mapc (lambda (elem) (print elem))))
+
 (defun d11/part-1 (input)
   -1)
 
