@@ -3,7 +3,8 @@
 ;;;; call (solve-part-two).
 ;;;; Author: vim-is-life
 ;;;; Date: 7 July 2024
-(load "../utils.lisp")
+;; (load "../utils.lisp")
+(in-package :aoc-2023)
 
 (defun extend-input (lines)
   "add a blank line before and after LINES, and then for every line, add a period
@@ -96,7 +97,6 @@ of the vector INPUT-LINES and WIDTH refers to the length of an element of INPUT-
 ;;   (setf (aref arr 1 3) 5)
 ;;   arr)
 
-;; TODO account for distance or find way to add in distance
 (defun solve-part-one (input)
   (flet ((new-neighbor? (coords dist-array)
            (destructuring-bind (line-idx char-idx) coords
