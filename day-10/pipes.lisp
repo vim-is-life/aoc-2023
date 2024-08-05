@@ -128,9 +128,39 @@ of the vector INPUT-LINES and WIDTH refers to the length of an element of INPUT-
 ;; => 6870 (13 bits, #x1AD6)
 
 ;;; PART TWO
+(defconstant +example-input-2+ (coerce (extend-input (get-file-contents "example-input-2.txt"))
+                                       'vector))
+
+(defun make-visited-array (input-lines)
+  "Return an array of dimensions (HEIGHT WIDTH) where HEIGHT refers to the length
+of the vector INPUT-LINES and WIDTH refers to the length of an element of INPUT-LINES"
+  (let ((dims `(,(length input-lines) ,(length (aref input-lines 0)))))
+    (make-array dims :initial-element nil)))
+
 (defun get-array-of-visited-tiles (problem-input)
   "Return a two dimensional array where every tile in the loop is marked as 'L
-and everything else is marked as 'E (L for in Loop and E for Exterior)")
+and everything else is marked as 'E (L for in Loop and E for Exterior)"
+  (flet ((new-neighbor? (coords visited-array)
+           (destructuring-bind (line-idx char-idx) coords
+             (eql 'nil (aref visited-array line-idx char-idx)))))
+    (let ((pipe-queue (make-instance 'queue))
+          (visited-array (make-visited-array problem-input))
+          (starting-pos (get-start-pos problem-input)))
+      (enqueue pipe-queue starting-pos)
+      (loop :until (qempty? pipe-queue)
+            :for coords = (dequeue pipe-queue)
+            :for line-idx = (first coords)
+            :for char-idx = (second coords)
+            :for neighbors = (get-neigbors line-idx char-idx problem-input) :do
+              (progn
+                (print coords)
+                (loop :for neighbor :in neighbors
+                      :if (new-neighbor? neighbor visited-array)
+                        :do (enqueue pipe-queue neighbor))
+                (setf (aref visited-array line-idx char-idx) 'L)))
+      visited-array)))
+
+;; (get-array-of-visited-tiles +example-input-2+)
 
 (defun solve-part-two (input)
   t)
